@@ -28,8 +28,6 @@ import net.minecraft.nbt.NbtCompound;
 import net.minecraft.util.math.MathConstants;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
-import org.joml.Quaternionf;
-import org.joml.Vector3f;
 
 /**
  * Represents a placeholder entity to make another entity seat on the laps of a player.
@@ -71,9 +69,10 @@ public class LapSeatEntity extends Entity {
 	public void updateTrackedPosition(Entity.PositionUpdater positionUpdater) {
 		if (this.trackedOwner == null) return;
 
-		var relativePos = new Vector3f(0.f, .7f, .55f);
-		relativePos.rotate(new Quaternionf().rotationXYZ(0.f, -Affectionate.getEffectiveBodyYaw(this.trackedOwner) * MathConstants.RADIANS_PER_DEGREE, 0.f));
-		Vec3d transformedPos = new Vec3d(relativePos);
+		var relativePos = new Vec3d(0.d, .7d, .55d);
+		Vec3d transformedPos = relativePos
+				.multiply(this.trackedOwner.getScaleFactor())
+				.rotateY(Affectionate.getEffectiveBodyYaw(this.trackedOwner) * -MathConstants.RADIANS_PER_DEGREE);
 
 		var newPos = this.trackedOwner.getPos().add(transformedPos);
 		positionUpdater.accept(this, newPos.getX(), newPos.getY(), newPos.getZ());
