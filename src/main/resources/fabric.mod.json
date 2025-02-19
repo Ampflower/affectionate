@@ -33,5 +33,5 @@
 	"mixins": [
 		"affectionate.mixins.json"
 	],
-	"environment": "client"
+	"environment": "*"
 }
