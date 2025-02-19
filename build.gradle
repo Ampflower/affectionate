@@ -132,7 +132,7 @@ dependencies {
 	mappings "org.quiltmc:quilt-mappings:${minecraft_version}+build.${project.quilt_mappings}:intermediary-v2"
 	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
 
-	modImplementation("net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}")
+	modImplementation("net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}+${project.minecraft_version}")
 	modImplementation("maven.modrinth:ears:${project.ears_version}")
 
 	testmodImplementation sourceSets.main.output
