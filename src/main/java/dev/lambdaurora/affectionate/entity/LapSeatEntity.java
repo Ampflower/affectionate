@@ -25,9 +25,6 @@ import net.minecraft.entity.data.DataTracker;
 import net.minecraft.entity.data.TrackedData;
 import net.minecraft.entity.data.TrackedDataHandlerRegistry;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.network.listener.ClientPlayPacketListener;
-import net.minecraft.network.packet.Packet;
-import net.minecraft.network.packet.s2c.play.EntitySpawnS2CPacket;
 import net.minecraft.util.math.MathConstants;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
@@ -53,10 +50,11 @@ public class LapSeatEntity extends Entity {
 
 	public void setTrackedOwner(LivingEntity trackedOwner) {
 		this.dataTracker.set(OWNER, trackedOwner == null ? 0 : trackedOwner.getId());
+		updateTrackedPosition(Entity::setPosition);
 	}
 
 	@Override
-	public void onTrackedDataUpdate(TrackedData<?> data) {
+	public void onTrackedDataSet(TrackedData<?> data) {
 		if (OWNER.equals(data)) {
 			int ownerId = this.dataTracker.get(OWNER);
 			var owner = this.getWorld().getEntityById(ownerId);
@@ -73,7 +71,7 @@ public class LapSeatEntity extends Entity {
 	public void updateTrackedPosition(Entity.PositionUpdater positionUpdater) {
 		if (this.trackedOwner == null) return;
 
-		var relativePos = new Vector3f(0.f, .4f, .55f);
+		var relativePos = new Vector3f(0.f, .7f, .55f);
 		relativePos.rotate(new Quaternionf().rotationXYZ(0.f, -Affectionate.getEffectiveBodyYaw(this.trackedOwner) * MathConstants.RADIANS_PER_DEGREE, 0.f));
 		Vec3d transformedPos = new Vec3d(relativePos);
 
@@ -90,13 +88,8 @@ public class LapSeatEntity extends Entity {
 	}
 
 	@Override
-	protected void initDataTracker() {
-		this.dataTracker.startTracking(OWNER, 0);
-	}
-
-	@Override
-	public double getMountedHeightOffset() {
-		return 0;
+	protected void initDataTracker(final DataTracker.Builder builder) {
+		builder.add(OWNER, 0);
 	}
 
 	@Override
@@ -123,13 +116,6 @@ public class LapSeatEntity extends Entity {
 
 	@Override
 	protected void writeCustomDataToNbt(NbtCompound nbt) {
-	}
-
-	/* Networking */
-
-	@Override
-	public Packet<ClientPlayPacketListener> createSpawnPacket() {
-		return new EntitySpawnS2CPacket(this);
 	}
 
 	/* Ticking */

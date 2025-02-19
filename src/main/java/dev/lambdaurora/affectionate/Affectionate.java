@@ -19,16 +19,15 @@ package dev.lambdaurora.affectionate;
 
 import dev.lambdaurora.affectionate.entity.AffectionatePlayerEntity;
 import dev.lambdaurora.affectionate.entity.LapSeatEntity;
+import dev.lambdaurora.affectionate.network.SendHeartsPayload;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
-import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
+import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.PlayerLookup;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
-import net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityTypeBuilder;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.fabricmc.fabric.api.resource.ResourcePackActivationType;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.entity.EntityDimensions;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.SpawnGroup;
@@ -56,11 +55,11 @@ public final class Affectionate implements ModInitializer {
 
 	/* Entities */
 	public static final EntityType<LapSeatEntity> LAP_SEAT_ENTITY_TYPE = Registry.register(Registries.ENTITY_TYPE, id("lap_seat"),
-			FabricEntityTypeBuilder.create(SpawnGroup.MISC, LapSeatEntity::new)
-					.dimensions(EntityDimensions.fixed(0.f, 0.f))
+			EntityType.Builder.create(LapSeatEntity::new, SpawnGroup.MISC)
+					.setDimensions(0.f, 0.f)
 					.disableSaving()
 					.disableSummon()
-					.trackRangeChunks(10)
+					.maxTrackingRange(10)
 					.build()
 	);
 
@@ -80,8 +79,9 @@ public final class Affectionate implements ModInitializer {
 				if (lapSeat == null)
 					return ActionResult.PASS;
 
-				world.spawnEntity(lapSeat);
+				// Track player and set position before spawning.
 				lapSeat.setTrackedOwner(otherPlayer);
+				world.spawnEntity(lapSeat);
 				player.startRiding(lapSeat, true);
 
 				return ActionResult.SUCCESS;
@@ -90,18 +90,21 @@ public final class Affectionate implements ModInitializer {
 			return ActionResult.PASS;
 		});
 
-		ServerPlayNetworking.registerGlobalReceiver(SEND_HEARTS_PACKET, (server, player, handler, buf, responseSender) -> {
-			server.execute(() -> {
+		PayloadTypeRegistry.playS2C().register(SendHeartsPayload.ID, SendHeartsPayload.CODEC);
+		PayloadTypeRegistry.playC2S().register(SendHeartsPayload.ID, SendHeartsPayload.CODEC);
+
+		ServerPlayNetworking.registerGlobalReceiver(SendHeartsPayload.ID, (payload, ctx) -> {
+			ctx.server().execute(() -> {
+				var player = ctx.player();
 				var affectionatePlayer = (AffectionatePlayerEntity) player;
 
 				if (!affectionatePlayer.affectionate$isSendingHeart()) {
 					affectionatePlayer.affectionate$startSendHeart();
 
-					var newBuf = PacketByteBufs.create();
-					newBuf.writeVarInt(player.getId());
+					var newPayload = new SendHeartsPayload(player.getId());
 
 					for (final var tracking : PlayerLookup.tracking(player)) {
-						ServerPlayNetworking.send(tracking, SEND_HEARTS_PACKET, newBuf);
+						ServerPlayNetworking.send(tracking, newPayload);
 					}
 				}
 			});
@@ -117,7 +120,7 @@ public final class Affectionate implements ModInitializer {
 	}
 
 	public static Identifier id(String path) {
-		return new Identifier(NAMESPACE, path);
+		return Identifier.of(NAMESPACE, path);
 	}
 
 	public static float getEffectiveBodyYaw(LivingEntity entity) {

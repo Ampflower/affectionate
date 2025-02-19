@@ -21,6 +21,7 @@ import com.mojang.blaze3d.platform.InputUtil;
 import dev.lambdaurora.affectionate.Affectionate;
 import dev.lambdaurora.affectionate.client.renderer.LapSeatEntityRenderer;
 import dev.lambdaurora.affectionate.entity.AffectionatePlayerEntity;
+import dev.lambdaurora.affectionate.network.SendHeartsPayload;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
@@ -28,7 +29,6 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
-import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.KeyBind;
 import net.minecraft.client.render.entity.model.PlayerEntityModel;
@@ -48,8 +48,9 @@ public final class AffectionateClient implements ClientModInitializer, ClientTic
 
 		ClientTickEvents.START_WORLD_TICK.register(this);
 
-		ClientPlayNetworking.registerGlobalReceiver(Affectionate.SEND_HEARTS_PACKET, (client, handler, buf, responseSender) -> {
-			int playerId = buf.readVarInt();
+		ClientPlayNetworking.registerGlobalReceiver(SendHeartsPayload.ID, (payload, ctx) -> {
+			final var client = ctx.client();
+			final int playerId = payload.entityId();
 
 			client.execute(() -> {
 				if (client.world != null && client.world.getEntityById(playerId) instanceof AffectionatePlayerEntity player) {
@@ -66,7 +67,7 @@ public final class AffectionateClient implements ClientModInitializer, ClientTic
 			if (!((AffectionatePlayerEntity) client.player).affectionate$isSendingHeart()) {
 				((AffectionatePlayerEntity) client.player).affectionate$startSendHeart();
 
-				ClientPlayNetworking.send(Affectionate.SEND_HEARTS_PACKET, PacketByteBufs.empty());
+				ClientPlayNetworking.send(new SendHeartsPayload(0));
 			}
 		}
 	}

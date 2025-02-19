@@ -28,7 +28,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class EntityMixin {
 	@Inject(
 			method = "updatePassengerPosition(Lnet/minecraft/entity/Entity;Lnet/minecraft/entity/Entity$PositionUpdater;)V",
-			at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;getY()D"),
+			at = @At("HEAD"),
 			cancellable = true
 	)
 	private void affectionate$onUpdatePassengerPosition(Entity passenger, Entity.PositionUpdater positionUpdater, CallbackInfo ci) {
